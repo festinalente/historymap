@@ -10,7 +10,8 @@
  */
 
 function createHoverPopup (data, event) {
-  const layerName = data['feature group'].replace(/[0-9|-]/gi, '');
+  const layerName = data['feature group'];
+  // .replace(/[0-9|-]/gi, '');
   const layerClass = `${layerName}PopUp`;
   const popUpHTML = document.createElement('div');
   const mapboxFeatureProperties = ((event && event.features) && event.features[0].properties) || null;
@@ -18,17 +19,20 @@ function createHoverPopup (data, event) {
   // Maybe a semantic feature group name will be required:
   const personNameSt = mapboxFeatureProperties.name || mapboxFeatureProperties.To || null;
 
+  console.log(lot);
+  
   popUpHTML.classList.add(
     'hoverPopUp'
-  );
+    );
 
   const personName = document.createElement('p');
   popUpHTML.appendChild(personName);
   personName.textContent = personNameSt;
-
+  
   const lotName = document.createElement('b');
   popUpHTML.appendChild(lotName);
   lotName.textContent = (lot) ? `${layerName} Lot: ${lot}` : lot;
+  console.log(popUpHTML);
   return popUpHTML;
 }
 

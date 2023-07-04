@@ -1,6 +1,17 @@
 let layersExplored = [];
 let layerContainers = [];
 
+function toggleSideInfo () {
+  const infoDisplay = document.querySelector('.sideInfoDisplay');
+  if (infoDisplay.classList.contains('displayContent')) {
+    infoDisplay.classList.remove('displayContent');
+    infoDisplay.classList.add('hiddenContent');
+  } else {
+    infoDisplay.classList.add('displayContent');
+    infoDisplay.classList.remove('hiddenContent');
+  }
+}
+
 function populateSideInfoDisplay (mapFeatureClickEvent, layerData) {
   let target;
   /**
@@ -48,8 +59,6 @@ function populateSideInfoDisplay (mapFeatureClickEvent, layerData) {
 
   if (!cleanNid) { return; }
   /* HACKS END */
-
-
 
   const url = `https://encyclopedia.nahc-mapping.org/rendered-export-single?nid=${cleanNid}`;
 

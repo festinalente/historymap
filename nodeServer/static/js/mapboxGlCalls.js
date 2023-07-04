@@ -36,15 +36,10 @@ window.setTimeout(() => {
      */
     map.on('click', (e) => {
       const cursorType = map.getCanvas().style.cursor;
-      const controlsDiv = document.querySelector('.mapControls');
       const hideTab = document.querySelector('.hideMenuTab');
-      const sideInfoDisplay = document.querySelector('.sideInfoDisplay');
+      toggleSideInfo();
       if (cursorType !== 'pointer') {
-        controlsDiv.classList.add('hiddenControls');
-        hideTab.textContent = '»';
-        hideTab.style.left = '0px';
-        sideInfoDisplay.classList.remove('displayContent');
-        sideInfoDisplay.classList.add('hiddenContent');
+        hideTab.click();
       }
     });
   });

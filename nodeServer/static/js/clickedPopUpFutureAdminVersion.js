@@ -4,7 +4,7 @@
  * "PUT" on mapbox
  */
 
-function createClickedFeaturePopupAdmin (layerClass, event, layerName) {
+function createClickedFeaturePopupAdmin (event) {
   const popUpContent = document.createElement('form');
   popUpContent.classList.add('clickPopupAdmin');
 

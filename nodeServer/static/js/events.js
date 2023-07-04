@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   layerControls.generateAddMapForm();
   layerControls.layerControlEvents();
 
-  sliderConstructor = new SliderConstructor(1625, 1701);
+  sliderConstructor = new SliderConstructor('1625-01-01T01:00:00.000Z', '1701-01-01T01:00:00.000Z', '1663-01-01T01:00:00.000Z');
   sliderConstructor.getDate();
   document.querySelectorAll('[data-featuregroup="Current Satellite"').forEach((radio) => {
     radio.click();

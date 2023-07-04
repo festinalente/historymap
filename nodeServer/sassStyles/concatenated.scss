@@ -930,6 +930,7 @@ $im-no-media-expressions: ('screen', 'portrait', 'landscape') !default;
     background-color: white;
     position: fixed;
     left: 0;
+    height: 100%;
   }
 
   .mapContainer {
@@ -1148,7 +1149,7 @@ $im-no-media-expressions: ('screen', 'portrait', 'landscape') !default;
     border-radius: 0.5em;
     cursor: pointer;
     overflow: scroll;
-    left: calc(50% - 12px); 
+    left: calc(50% - 1px - 0.6em);
     overflow: visible;
   }
   

@@ -1,46 +1,76 @@
-function SliderConstructor (minDate, maxDate) {
-  this.getDate = () => {
-    const selection = getSelection();
-    return getDate(selection);
-  };
+function SliderConstructor (min, max, preSelection) {
+  [...arguments].forEach((date) => {
+    if (typeof date !== 'string' || date.length !== 24) {
+      const err = new Error('One or more of the dates provided does not appear to be an ISO-8601 string e.g. "1643-01-01T01:00:00.000Z"');
+      throw err;
+    }
+  });
 
-  this.dateTransform = (date) => {
-    return getDate(date);
-  };
+  const minDate = new Date(min);
+  const minDateYear = minDate.getFullYear();
 
-  this.returnMinDate = () => {
-    // whatever position the selector is at:
-    return getDate();
-  };
+  const maxDate = new Date(max);
+  const maxDateYear = maxDate.getFullYear();
 
-  this.returnMaxDate = () => {
-    return getDate(maxDate);
-  };
+  const checkBounds = new Date(preSelection);
+  if (checkBounds < minDate || checkBounds > maxDate) {
+    const err = new Error('Your preselected date is not between your min and max dates');
+    throw err;
+  }
+
+  let load = false;
   // check rounding
-  const step = (maxDate - minDate) / 10;
+  const step = (maxDateYear - minDateYear) / 10;
   const timeline = document.querySelector('.timeline');
   const slider = document.querySelector('.sliderHandle');
+  const datePanel = document.querySelector('.datePanel');
 
+  // REGARDING MOVING ACTION
   let isDown = false;
   let startX;
   let scrollLeft;
+  let moveEvent;
 
-  timeline.addEventListener('mouseover', (e) => {
-    slider.classList.add('redSlider');
-  });
+  // REGARING DATE SELECTION ON MOVE
+  const rulerPositionDimensions = () => {
+    return document.querySelector('.timelineSlider').getBoundingClientRect();
+  };
+  const sliderPositionDimensions = () => {
+    return slider.getBoundingClientRect();
+  };
+  const rulerWidth = () => {
+    return rulerPositionDimensions().width;
+  };
 
-  timeline.addEventListener('mouseout', (e) => {
-    slider.classList.remove('redSlider');
-  });
+  const dateRange = dateDiffInDays(minDate, maxDate);
 
-  makeYears(minDate, maxDate, step);
+  const dayWidth = rulerWidth() / dateRange;
 
-  function makeYears (minDate, maxDate, step) {
+  const sliderCenterSelectionPosition = () => {
+    return (sliderPositionDimensions().left - rulerPositionDimensions().x) + (sliderPositionDimensions().width / 2);
+  };
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  let selectedDateTimestamp;
+
+  let selectedDate;
+
+  /* PUBLIC METHODS */
+  this.getDate = () => {
+    return getSelection();
+  };
+  /* PUBLIC METHODS END */
+
+  /* RENDER WIDGET */
+  renderWidget(minDateYear, maxDateYear, step);
+
+  function renderWidget (minDateYear, maxDateYear, step) {
     const steps = [];
-    steps.push(Math.round(minDate += step));
+    steps.push(Math.round(minDateYear += step));
     for (let i = 1; i < 10; i++) {
       if (i % 2 === 0) {
-        steps.push(Math.round(minDate += step * 2));
+        steps.push(Math.round(minDateYear += step * 2));
       }
       if (i === 9) {
         makeDivs(steps);
@@ -60,78 +90,114 @@ function SliderConstructor (minDate, maxDate) {
       }
     }
   }
+  /* RENDER WIDGET  END */
 
-  const MS_PER_SEC = 1000;
-  const SEC_PER_HR = 60 * 60;
-  const HR_PER_DAY = 24;
-  const MS_PER_DAY = MS_PER_SEC * SEC_PER_HR * HR_PER_DAY;
+  /* PRIVATE METHODS */
 
   function dateDiffInDays (date1, date2) {
+    function getUTCTime (dateStr) {
+      const date = new Date(dateStr.toString());
+      /* If use 'Date.getTime()' it doesn't compute the right amount of days
+      if there is a 'day saving time' change between dates. */
+      return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
     const date1Time = getUTCTime(date1);
     const date2Time = getUTCTime(date2);
     if (!date1Time || !date2Time) return 0;
-    return Math.round((date2Time - date1Time) / MS_PER_DAY);
+    return Math.round((date2Time - date1Time) / (24 * 60 * 60 * 1000));
   }
 
-  function getUTCTime (dateStr) {
-    const date = new Date(dateStr.toString());
-    // If use 'Date.getTime()' it doesn't compute the right amount of days
-    // if there is a 'day saving time' change between dates
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  }
+  function getSelection (key) {
+    // gets the currently selected day from start:
+    const currentSelection = () => {
+      return sliderCenterSelectionPosition() / dayWidth;
+    };
 
-  function addDays (date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-  }
+    // sets the slider position:
+    function setSliderSliderPosition () {
+      const daysSinceStart = dateDiffInDays(minDate, selectedDate);
+      const px = (dayWidth * daysSinceStart) - (sliderPositionDimensions().width / 2);
+      slider.style.left = `${px}px`;
+    }
 
-  function getSelection () {
-    const width = document.querySelector('.timelineSlider').clientWidth;
-    const position = parseFloat(slider.offsetLeft);
-
-    const dateRange = maxDate - minDate;
-    const dateRangeDisplay = dateDiffInDays(minDate, maxDate);
-
-    const dayWidth = width / dateRange;
-    const dayWidthDisplay = width / dateRangeDisplay;
-
-    const selectionDisplay = Math.round(minDate + (position / dayWidthDisplay));
-    const prettyPrint = addDays(minDate.toString(), selectionDisplay);
-
-    // internal
-    const selection = Math.round(minDate + (position / dayWidth));
-
-    const day = prettyPrint.getDate();
-    const month = prettyPrint.getMonth();
-    const year = prettyPrint.getFullYear();
-    // this should be placed outside this constructor:
-    // document.querySelector('.datePanel').textContent = `${day}${stNdRdTh(day)} ${months[month]} ${year}`;
-    document.querySelector('.datePanel').textContent = `${day} ${months[month]} ${year}`;
-    // ditto
-    layerControls.addDateFilter(getDate(selection), getDate(maxDate));
-    return selection;
-  }
-
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const stNdRdTh = (number) => {
-    const postFix = ['st', 'nd', 'rd', 'th'];
-    const exceptions = [11, 12, 13, 0];
-    const length = number.toString().length;
-    if (length > 1) {
-      const lastDigit = parseInt(number.toString()[1]);
-      if (exceptions.includes(lastDigit) || lastDigit > 3) {
-        return postFix[3];
+    // writes date to date panel
+    function writeToDiv (selection) {
+      datePanel.textContent = formatDate(selection, 'string');
+    }
+    // if a mouse or a touch event:
+    if (!key) {
+      // onload, if a pre selected value is chosen;
+      if (preSelection && !load) {
+        selectedDateTimestamp = new Date(preSelection).getTime();
+        load = true;
+      } else {
+        selectedDateTimestamp = new Date(min).setDate(currentSelection());
       }
-      return postFix[parseInt(number.toString()[1]) - 1];
+    // if a keyboard event:
+    } else {
+      selectedDateTimestamp += (key * 24 * 60 * 60 * 1000);
     }
-    if (parseInt(number.toString()[0]) > 4) {
-      return postFix[3];
-    }
-    return postFix[parseInt(number.toString()[0]) - 1];
-  };
 
-  function getDate (selection, returnIntOrSt) {
+    selectedDate = new Date(selectedDateTimestamp);
+
+    if (selectedDate > maxDate || selectedDate < minDate) {
+      return;
+    }
+    const dateFormatMapbox = formatDate(selectedDate);
+    setSliderSliderPosition();
+    writeToDiv(dateFormatMapbox);
+    layerControls.addDateFilter(dateFormatMapbox, dateFormatMapbox);
+    return dateFormatMapbox;
+  }
+
+  function toggleMove () {
+    if (moveEvent) {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('touchmove', move);
+      moveEvent = true;
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('touchmove', move);
+    moveEvent = false;
+  }
+
+  // On drag start
+  function start (e) {
+    isDown = true;
+    slider.classList.add('active');
+    startX = e.pageX || e.touches[0].pageX - slider.offsetLeft;
+    scrollLeft = slider.offsetLeft;
+    // attach event
+    toggleMove();
+  }
+
+  function move (e) {
+    // if mouse is moving but not dragging slider
+    if (!isDown) return;
+    const x = e.pageX || e.touches[0].pageX - slider.offsetLeft;
+    const dist = (x - startX);
+    const px = scrollLeft + dist;
+    console.log(x);
+    console.log(rulerPositionDimensions());
+    // if (px > -14) {
+    if (x > rulerPositionDimensions().left &&
+      x < rulerPositionDimensions().right) {
+      slider.style.left = `${px}px`;
+      getSelection();
+    }
+  }
+
+  /* On drag end */
+  function end (e) {
+    // remove event:
+    toggleMove();
+    isDown = false;
+    slider.classList.remove('active');
+  }
+
+  // formats the date to the required form to query map features:
+  function formatDate (selection, returnIntOrSt) {
     selection = (typeof selection === 'number')
       ? selection.toString()
       : selection;
@@ -162,45 +228,11 @@ function SliderConstructor (minDate, maxDate) {
       ? `0${rawDay}`
       : `${rawDay}`;
     if (returnIntOrSt === 'string') {
-      //return `${rawDay}${stNdRdTh(rawDay)} ${months[rawMonth]} ${date.getFullYear()}`;
+      // return `${rawDay}${stNdRdTh(rawDay)} ${months[rawMonth]} ${date.getFullYear()}`;
       return `${rawDay} ${months[rawMonth]} ${date.getFullYear()}`;
     }
     return parseInt(`${date.getFullYear()}${month}${day}`);
   }
-
-  let moveEvent;
-  function toggleMove () {
-    if (moveEvent) {
-      document.removeEventListener('mousemove', move);
-      document.removeEventListener('touchmove', move);
-      moveEvent = true;
-    }
-    document.addEventListener('mousemove', move);
-    document.addEventListener('touchmove', move);
-    moveEvent = false;
-  }
-
-  const start = (e) => {
-    isDown = true;
-    slider.classList.add('active');
-    startX = e.pageX || e.touches[0].pageX - slider.offsetLeft;
-    scrollLeft = slider.offsetLeft;
-    toggleMove();
-  };
-
-  const move = (e) => {
-    if (!isDown) return;
-    const x = e.pageX || e.touches[0].pageX - slider.offsetLeft;
-    const dist = (x - startX);
-    slider.style.left = `${scrollLeft + dist}px`;
-    getSelection();
-  };
-
-  const end = (e) => {
-    toggleMove();
-    isDown = false;
-    slider.classList.remove('active');
-  };
 
   timeline.addEventListener('click', (e) => {
     e.preventDefault();
@@ -211,9 +243,49 @@ function SliderConstructor (minDate, maxDate) {
     getSelection();
   });
 
+  /* EVENTS */
   slider.addEventListener('mousedown', start);
   slider.addEventListener('touchstart', start);
 
   slider.addEventListener('mouseup', end);
   slider.addEventListener('touchend', end);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') {
+      getSelection(1);
+    }
+    if (e.key === 'ArrowLeft') {
+      getSelection(-1);
+    }
+  });
+
+  timeline.addEventListener('mouseover', (e) => {
+    slider.classList.add('redSlider');
+  });
+
+  timeline.addEventListener('mouseout', (e) => {
+    slider.classList.remove('redSlider');
+  });
+  /* EVENTS END */
 }
+
+/*
+  // A function to return date postfixes
+
+  const stNdRdTh = (number) => {
+  const postFix = ['st', 'nd', 'rd', 'th'];
+  const exceptions = [11, 12, 13, 0];
+  const length = number.toString().length;
+  if (length > 1) {
+    const lastDigit = parseInt(number.toString()[1]);
+    if (exceptions.includes(lastDigit) || lastDigit > 3) {
+      return postFix[3];
+    }
+    return postFix[parseInt(number.toString()[1]) - 1];
+  }
+  if (parseInt(number.toString()[0]) > 4) {
+    return postFix[3];
+  }
+    return postFix[parseInt(number.toString()[0]) - 1];
+  };
+*/

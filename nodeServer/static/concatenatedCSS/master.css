@@ -264,7 +264,8 @@ a {
     transition: 0.3s linear all;
     background-color: white;
     position: fixed;
-    left: 0; }
+    left: 0;
+    height: 100%; }
   .mapContainer {
     display: flex;
     flex-grow: 1;
@@ -432,7 +433,7 @@ a {
     border-radius: 0.5em;
     cursor: pointer;
     overflow: scroll;
-    left: calc(50% - 12px);
+    left: calc(50% - 1px - 0.6em);
     overflow: visible; }
   .timelineSlider .sliderHandle:hover {
     border: 1px solid #59b4d4;

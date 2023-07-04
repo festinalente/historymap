@@ -776,7 +776,7 @@ function LayerManager (parentElement) {
 
   /**
    * @param {*} data Can accept partial data for updates, but requires an bson _id for updates.
-   * @returns The same date saved in the DB after rendering a layer toggle widget. 
+   * @returns The same date saved in the DB after rendering a layer toggle widget.
    */
   function saveLayer (data) {
     const promise = new Promise((resolve, reject) => {
@@ -793,7 +793,12 @@ function LayerManager (parentElement) {
   };
 
   this.addDateFilter = (minDate, maxDate) => {
-    const filter = ['all', ['<=', 'DayStart', minDate], ['>=', 'DayEnd', minDate]];
+    // const filter = ['all', ['<=', 'DayStart', minDate], ['>=', 'DayEnd', minDate]];
+
+    const filter = ['all',
+      ['<=', 'DayStart', minDate],
+      ['>=', 'DayEnd', minDate]
+    ];
     for (let j = 0; j < layersMapboxId.length; j++) {
       for (let i = 0; i < layersMapboxId[j].length; i++) {
         const mapboxId = layersMapboxId[j][i];
@@ -883,7 +888,8 @@ function LayerManager (parentElement) {
           populateSideInfoDisplay(event, data);
           clickPopUp
             .setLngLat(event.lngLat)
-            .setDOMContent(createHoverPopup(data, event))
+            //.setDOMContent(createHoverPopup(data, event))
+            .setDOMContent(createClickedFeaturePopupAdmin (event))
             .addTo(map);
         });
       }
