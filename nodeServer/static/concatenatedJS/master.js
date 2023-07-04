@@ -1326,7 +1326,7 @@ let layerContainers = [];
 
 function toggleSideInfo () {
   const infoDisplay = document.querySelector('.sideInfoDisplay');
-  if (infoDisplay.classList.contains('displayContent')) {
+  if (infoDisplay.classList.contains('displayContent') || infoDisplay.innerHTML === '') {
     infoDisplay.classList.remove('displayContent');
     infoDisplay.classList.add('hiddenContent');
   } else {
