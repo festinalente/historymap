@@ -46,6 +46,10 @@ function LayerManager (parentElement) {
     }, 500);
   }
 
+  function getSourceCenter (bounds) {
+    return [((bounds[2] + bounds[0]) / 2), ((bounds[3] + bounds[1]) / 2)];
+  }
+
   function zoomToFeatureGroup (layers) {
     const group = [];
     layers.forEach((layer, i) => {
@@ -70,13 +74,12 @@ function LayerManager (parentElement) {
       }
       if (i === layers.length - 1) {
         const groupBounds = determineBounds(group);
-        // maps[map].fitBounds(groupBounds, { bearing: 0, padding: 15 });
-        maps[map]
-          .fitBounds(groupBounds, { bearing, padding });
-        // hack for bug: map.fitBounds() stalls if map.setZoom() chained
-        setTimeout(() => {
-          if (zoom) { maps[map].setZoom(zoom); }
-        }, 500);
+        maps[map].flyTo({
+          center: getSourceCenter(groupBounds),
+          zoom: zoom,
+          speed: 0.5,
+          bearing: bearing
+        });
       }
     });
 
@@ -159,12 +162,27 @@ function LayerManager (parentElement) {
         if (e.target.classList.contains('zoomToLayer')) {
           const mapboxId = e.target.parentElement.querySelector('.zoomToLayer').dataset.id;
           const map = mapboxId.split('/')[mapboxId.split('/').length - 1];
+          const bounds = maps[map].getSource(mapboxId).bounds;
+
           /* Both maps are the same size, so it makes no difference which map the function is
           called on */
           layerDatas.forEach((layer) => {
             if (layer['feature group'] === mapboxId.split('/')[1]) {
+              maps[map].flyTo({
+                center: getSourceCenter(bounds),
+                zoom: layer.zoom,
+                speed: 0.5,
+                bearing: layer.bearing
+              });
+              /*
               maps[map].fitBounds(maps[map].getSource(mapboxId).bounds, { bearing: layer.bearing || 0, padding: layer.padding || 0 });
-              if (layer.zoom) { maps[map].setZoom(layer.zoom); }
+              //if (layer.zoom) { maps[map].setZoom(layer.zoom); }
+              setTimeout(() => {
+                if (zoom) { maps[map].setZoom(zoom); }
+              }, 500);
+
+              maps[map].getSource(mapboxId).getCenter
+              */
             }
           });
         }
