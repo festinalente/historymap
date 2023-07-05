@@ -1,5 +1,5 @@
-let layersExplored = [];
-let layerContainers = [];
+layersExplored = [];
+layerContainers = [];
 
 function toggleSideInfo () {
   const infoDisplay = document.querySelector('.sideInfoDisplay');
@@ -22,20 +22,29 @@ function populateSideInfoDisplay (mapFeatureClickEvent, layerData) {
   infoDisplay.classList.add('displayContent');
   infoDisplay.classList.remove('hiddenContent');
 
+  if (layerData['info div color']) { infoDisplay.style.backgroundColor = layerData['info div color']; }
+  if (layerData['info div border color']) { infoDisplay.style.borderColor = layerData['info div border color']; }
+
+  infoDisplay.querySelectorAll('.infoDivAdded').forEach((div, i) => {
+    div.style.order = 2;
+  });
   // this block adds a single div per feature group:
   const featureGroup = layerData['feature group'];
   if (!layersExplored.includes(featureGroup)) {
     layersExplored.push(featureGroup);
     const newLayerContainer = document.createElement('div');
+    newLayerContainer.classList.add('infoDivAdded');
     layerContainers.push(newLayerContainer);
-    infoDisplay.appendChild(newLayerContainer);
+    // infoDisplay.appendChild(newLayerContainer);
     target = newLayerContainer;
+    infoDisplay.insertBefore(target, infoDisplay.children[0]);
   } else {
+    alert('writing to preexisting');
     const index = layersExplored.indexOf(featureGroup);
     target = layerContainers[index];
   }
 
-  target.innerHTML = '';
+  target.style.order = 1;
 
   while (target.firstChild) {
     target.removeChild(target.lastChild);
@@ -65,10 +74,10 @@ function populateSideInfoDisplay (mapFeatureClickEvent, layerData) {
   xhrGetInPromise(null, url).then((content) => {
     let rmNewlines = JSON.parse(content)[0].rendered_entity.replace(/\n/g, '');
     rmNewlines = rmNewlines.replace(/<a (.*?)>/g, '');
-    target.insertAdjacentHTML('beforeEnd', JSON.parse(content)[0].rendered_entity);
+    target.insertAdjacentHTML('afterbegin', JSON.parse(content)[0].rendered_entity);
   });
 
-  makeCloseButton(target);
+  // makeCloseButton(target);
 }
 
 function makeCloseButton (target) {

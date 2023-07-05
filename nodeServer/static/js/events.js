@@ -1,19 +1,6 @@
 /**
   * Onload event
   * @event DOMContentLoaded
-  * @fires MapConstructor#generateMap
-  */
-
- /*
-  window.addEventListener('DOMContentLoaded', (event) => {
-    const historyMap = new MapConstructor('#map', '80vh')
-      .generateMap()
-      .locateOnClick();
-  });*/
-
-/**
-  * Onload event
-  * @event DOMContentLoaded
   * @summary fires layer dialogue constructor
   * @fires Layer#generateAddLayerForm
   */
@@ -82,17 +69,16 @@ document.querySelector('body').addEventListener('click', (e) => {
   if (e.target.classList.contains('hideMenuTab')) {
     // bad code trying to deal with hard code values
     const controlsDiv = document.querySelector('.mapControls');
-    const mapContainer = document.querySelector('.mapContainer');
     if (e.target.textContent === '«') {
       controlsDiv.classList.add('hiddenControls');
       e.target.textContent = '»';
       e.target.style.left = '0px';
-      changePosition = compare._x + 325;
-      //compare._setPosition(changePosition);
+      // changePosition = compare._x + 325;
+      // compare._setPosition(changePosition);
     } else {
       controlsDiv.classList.remove('hiddenControls');
       e.target.textContent = '«';
-      //e.target.style.left = controlsDiv.offsetWidth;
+      // e.target.style.left = controlsDiv.offsetWidth;
       e.target.style.left = '325px';
     }
 

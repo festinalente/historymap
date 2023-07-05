@@ -66,6 +66,12 @@
       hyphens: auto;
       margin-top: 1em;
       overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+
+      .infoDivAdded {
+        flex: 1 0 100%;
+      }
 
       img {
         max-width: 100%;

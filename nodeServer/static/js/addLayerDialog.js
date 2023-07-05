@@ -6,6 +6,7 @@ function LayerManager (parentElement) {
   // Arrays to store and manage layers:
   const layersMongoId = [];
   const layersMapboxId = [];
+  const layerDatas = [];
   // Maps is defined in ~/historymap/nodeServer/static/js/mapboxGlCalls.js
   const mapNames = Object.keys(maps);
   const layerControls = document.querySelector('.layerControls');
@@ -24,6 +25,7 @@ function LayerManager (parentElement) {
       } else {
         xhrPostInPromise({ _id: layerId }, './getLayerById').then((layerData) => {
           const parsedLayerData = JSON.parse(layerData);
+          layerDatas.push(parsedLayerData);
           createLayer(parsedLayerData).then(() => {
             // layer added
             resolve();
@@ -34,6 +36,7 @@ function LayerManager (parentElement) {
     return promise;
   }
 
+  // not currently used, zoomed to layer on add to map:
   function zoomToLayer (zoom) {
     zoom.classList.remove('hiddenZoom');
     window.setTimeout(() => {
@@ -49,13 +52,31 @@ function LayerManager (parentElement) {
       const mapboxId = layer.parentElement.querySelector('.zoomToLayer').dataset.id;
       const map = mapboxId.split('/')[mapboxId.split('/').length - 1];
       const bounds = maps[map].getSource(mapboxId).bounds;
+
+      let zoom;
+      let bearing;
+      let padding;
+      layerDatas.forEach((layer) => {
+        if (layer['feature group'] === mapboxId.split('/')[1]) {
+          zoom = layer.zoom || 16.34;
+          bearing = layer.bearing || -51.3;
+          padding = layer.padding || 0;
+        }
+      });
+
       if (bounds) {
         group.push(bounds.slice(0, 2));
         group.push(bounds.slice(2));
       }
       if (i === layers.length - 1) {
         const groupBounds = determineBounds(group);
-        maps[map].fitBounds(groupBounds, { bearing: 0, padding: 15 });
+        // maps[map].fitBounds(groupBounds, { bearing: 0, padding: 15 });
+        maps[map]
+          .fitBounds(groupBounds, { bearing, padding });
+        // hack for bug: map.fitBounds() stalls if map.setZoom() chained
+        setTimeout(() => {
+          if (zoom) { maps[map].setZoom(zoom); }
+        }, 500);
       }
     });
 
@@ -140,7 +161,12 @@ function LayerManager (parentElement) {
           const map = mapboxId.split('/')[mapboxId.split('/').length - 1];
           /* Both maps are the same size, so it makes no difference which map the function is
           called on */
-          maps[map].fitBounds(maps[map].getSource(mapboxId).bounds, { bearing: 0, padding: 15 });
+          layerDatas.forEach((layer) => {
+            if (layer['feature group'] === mapboxId.split('/')[1]) {
+              maps[map].fitBounds(maps[map].getSource(mapboxId).bounds, { bearing: layer.bearing || 0, padding: layer.padding || 0 });
+              if (layer.zoom) { maps[map].setZoom(layer.zoom); }
+            }
+          });
         }
 
         if (e.target.classList.contains('easeToPoint')) {
@@ -610,8 +636,14 @@ function LayerManager (parentElement) {
         'layer source url',
         'feature group',
         'drupal node id',
-        // 'borough to which the layer belongs'
-        'borough'
+        'borough',
+        'pop up color',
+        'pop up border color',
+        'info div color',
+        'info div border color',
+        'padding',
+        'bearing',
+        'zoom'
       ];
 
       const titleDescriptors = [
@@ -620,7 +652,15 @@ function LayerManager (parentElement) {
         'The source URL e.g. mapbox://nittyjee.4kio957z',
         'Feature Group: The group to which this layer bellongs e.g. 1609|Manahatta',
         'The article nid you wish to display in the modal when the info button for the feature group is clicked',
-        'The borough where the feature group resides'
+        'The borough where the feature group resides',
+        'The color for (typically a hex value) for the pop up',
+        'The color for (typically a hex value) for the border on the pop up',
+        'The color for (typically a hex value) for the info slider',
+        'The color for (typically a hex value) for the border on the info slider',
+        'The bearing to display the feature group - a decimal representation of degrees, e.g. -51.4',
+        'Padding can be ignored if using zoom, otherwise provides a minimum spacing from any edge of the map, to the group',
+        'The zoom level 0-22, accepts decimals'
+
       ];
 
       textFields.forEach((fieldName, i) => {
@@ -805,6 +845,8 @@ function LayerManager (parentElement) {
         const targetMapText = mapboxId.split('/')[mapboxId.split('/').length - 1];
         const targetMap = maps[targetMapText];
         const exists = targetMap.getLayer(mapboxId);
+        console.log(exists);
+        
         if (!exists) {
           console.warn(`${targetMapText} doesn't have ${mapboxId}`);
           continue;
@@ -849,7 +891,7 @@ function LayerManager (parentElement) {
           map.getCanvas().style.cursor = 'pointer';
           hoverPopUp
             .setLngLat(event.lngLat)
-            .setDOMContent(createHoverPopup(data, event))
+            .setDOMContent(createPopup(data, event))
             .addTo(map);
         });
 
@@ -857,7 +899,7 @@ function LayerManager (parentElement) {
           map.getCanvas().style.cursor = 'pointer';
           hoverPopUp
             .setLngLat(event.lngLat)
-            .setDOMContent(createHoverPopup(data, event));
+            .setDOMContent(createPopup(data, event));
 
           if (event.features.length > 0) {
             if (hoveredFeature !== null) {
@@ -883,14 +925,22 @@ function LayerManager (parentElement) {
       }
 
       if (data.click) {
-        const clickPopUp = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 5 });
+        const clickPopUpA = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 5 });
+        const clickPopUpB = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 5 });
+
         map.on('click', data.id, (event) => {
+          console.log(data);
           populateSideInfoDisplay(event, data);
-          clickPopUp
+          // this works for the same popup to displayed on both maps, but feels hacky.
+          clickPopUpB
             .setLngLat(event.lngLat)
-            //.setDOMContent(createHoverPopup(data, event))
-            .setDOMContent(createClickedFeaturePopupAdmin (event))
-            .addTo(map);
+            .setDOMContent(createPopup(data, event))
+            .addTo(maps.beforeMap);
+
+          clickPopUpA
+            .setLngLat(event.lngLat)
+            .setDOMContent(createPopup(data, event))
+            .addTo(maps.afterMap);
         });
       }
 

@@ -54,7 +54,7 @@ function populateSideInfoDisplayHack (event, data, target) {
   target.classList.add('displayContent');
   target.classList.remove('hiddenContent');
   target.innerHTML = '';
-*/
+/*
   const close = document.createElement('i');
   close.classList.add('fa', 'fa-window-close');
   close.style.float = 'right';
@@ -65,7 +65,7 @@ function populateSideInfoDisplayHack (event, data, target) {
     target.classList.remove('displayContent');
     target.classList.add('hiddenContent');
   });
-  target.appendChild(close);
+  target.appendChild(close);*/
 
   // mapbox feature data
   const mapboxData = event.features[0].properties;
@@ -105,12 +105,12 @@ function populateSideInfoDisplayHack (event, data, target) {
 
     const articleLink = mapboxData.new_link;
     if (articleLink) {
-      makeLink(articleLink, articleLink, 'Encyclopedia Page: ')
+      makeLink(articleLink, articleLink, 'Encyclopedia Page: ');
     }
   }
 
   function makeDutchGrantInfo (drupalDataName, mapboxLot, lotInDrupal, mapboxData) {
-    target.style.backgroundColor = '#ffff7f';
+    //target.style.backgroundColor = '#ffff7f';
     const h4 = document.createElement('h4');
     target.appendChild(h4);
     h4.style.textAlign = 'left';

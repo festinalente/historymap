@@ -44,11 +44,13 @@ a {
 
 .hoverPopUp {
   background-color: rgba(255, 255, 0, 0.5);
-  border: solid #FFFF00 2px;
+  border: solid 2px;
+  border-color: #FFFF00;
   padding-left: 5px;
   padding-right: 5px; }
 
 .mapboxgl-popup-content {
+  background: #ffffff00 !important;
   padding: 0px !important; }
 
 .mapControls::-webkit-scrollbar-thumb {
@@ -304,7 +306,11 @@ a {
       -webkit-hyphens: auto;
       hyphens: auto;
       margin-top: 1em;
-      overflow-x: hidden; }
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column; }
+      .mapContainer .sideInfoDisplay .infoDivAdded {
+        flex: 1 0 100%; }
       .mapContainer .sideInfoDisplay img {
         max-width: 100%; }
       .mapContainer .sideInfoDisplay p {
