@@ -176,13 +176,14 @@ function SliderConstructor (min, max, preSelection) {
     // if mouse is moving but not dragging slider
     if (!isDown) return;
     const x = e.pageX || e.touches[0].pageX - slider.offsetLeft;
+    const y = e.pageY || e.touches[0].pageY;
     const dist = (x - startX);
     const px = scrollLeft + dist;
-    console.log(x);
-    console.log(rulerPositionDimensions());
     // if (px > -14) {
     if (x > rulerPositionDimensions().left &&
-      x < rulerPositionDimensions().right) {
+      x < rulerPositionDimensions().right &&
+      y < rulerPositionDimensions().bottom &&
+      y > rulerPositionDimensions().top) {
       slider.style.left = `${px}px`;
       getSelection();
     }

@@ -73,8 +73,6 @@ document.querySelector('body').addEventListener('click', (e) => {
       controlsDiv.classList.add('hiddenControls');
       e.target.textContent = '»';
       e.target.style.left = '0px';
-      // changePosition = compare._x + 325;
-      // compare._setPosition(changePosition);
     } else {
       controlsDiv.classList.remove('hiddenControls');
       e.target.textContent = '«';

@@ -37,28 +37,38 @@ mixin boroughToggle(boroughData, boroughName, user)
 
 -// name refers to the name to use -either layer name or feature group if the group contains 1 layer
 mixin layerToggle(layer, user, name)
-  -const geometryType = layer.type[0].type;
-  -const geometryColor = `color:${layer.type[0].color}`;
-  -const layerId = layer._id;
-  -const mapboxId = `${layer.borough}/${layer['feature group']}/${layer.name}/${layer.type[0].type}/${layer['target map'][0]}`;
+  -const geometryType = layer && layer.type && layer.type[0] && layer.type[0].type || null;
+  -const geometryColor = layer && layer.type && layer.type[0] && layer.type[0].color || null;
+  -const layerId = layer && layer._id || null;
+  -const borough = layer && layer.borough || null;
+  -const featureGroup = layer && layer['feature group'] || null;
+  -const layerName = layer && layer.name || null;
+  -const targetMap = layer && layer['target map'] && layer['target map'][0] || null;
+  -const mapboxId = `${borough}/${featureGroup}/${layerName}/${geometryType}/${targetMap}`;
 
-  if layer && layer.borough && layer.name && layer.type[0]
+  -console.log(layer)
+  if layer && borough && layerName && geometryType
     .layer
       input(type='checkbox' name=layer._id).fetchLayer
       if geometryType === 'circle'
         if user 
           i.editLayer.fa-pencil-alt.fas.compress-expand-icon(title='Edit this layer?' data-_id=layerId)
           i.mapMaster.deleteLayer.fa-trash.fas.compress-expand-icon(title='Delete this layer?' data-_id=layerId)
-        i.fas.fa-circle(style=geometryColor)
+        i.fas.fa-circle(style=`color:${geometryColor}`)
       if geometryType === 'fill'
         if user
           i.editLayer.fa-pencil-alt.fas.compress-expand-icon(title='Edit this layer?' data-_id=layerId)
           i.mapMaster.deleteLayer.fa-trash.fas.compress-expand-icon(title='Delete this layer?' data-_id=layerId)
-        i.fas.fa-square(style=geometryColor)
+        i.fas.fa-square(style=`color:${geometryColor}`)
       if geometryType === 'line'
         if user
           i.editLayer.fa-pencil-alt.fas.compress-expand-icon(title='Edit this layer?' data-_id=layerId)
           i.mapMaster.deleteLayer.fa-trash.fas.compress-expand-icon(title='Delete this layer?' data-_id=layerId)
-        i.fas.fa-slash.slash-icon(style=geometryColor)
+        i.fas.fa-slash.slash-icon(style=`color:${geometryColor}`)
+      if geometryType === 'labels'
+        if user
+          i.editLayer.fa-pencil-alt.fas.compress-expand-icon(title='Edit this layer?' data-_id=layerId)
+          i.mapMaster.deleteLayer.fa-trash.fas.compress-expand-icon(title='Delete this layer?' data-_id=layerId)
+        i.fas.fa-comment-dots(style=`color:${geometryColor}`)
       label(for=layer._id) #{name}
       i.fa.fa-crosshairs.zoomToLayer.hiddenZoom(data-id=mapboxId title='Zoom to layer')

@@ -189,9 +189,16 @@ function LayerManager (parentElement) {
 
         if (e.target.classList.contains('easeToPoint')) {
           const point = JSON.parse(e.target.dataset.easetopoint);
+          const bearing = (e.target.dataset.bearing || isFinite(e.target.dataset.bearing)) ? parseFloat(e.target.dataset.bearing) : 0;
+          const zoom = (e.target.dataset.zoom || isFinite(e.target.dataset.zoom)) ? parseFloat(e.target.dataset.zoom) : 16;
           /* Both maps are the same size, so it makes no difference which map the function is
           called on */
-          maps.beforeMap.easeTo({ center: point, zoom: 16, pitch: 0 });
+          maps.beforeMap.flyTo({
+            center: point,
+            zoom,
+            speed: 0.5,
+            bearing
+          });
         }
 
         if (e.target.classList.contains('zoomToFeatureGroup')) {
@@ -208,9 +215,6 @@ function LayerManager (parentElement) {
           }
           maps[targetMap].setStyle(url);
           const point = JSON.parse(e.target.parentElement.querySelector('.easeToPoint').dataset.easetopoint);
-          /* Both maps are the same size, so it makes no difference which map the function is
-          called on */
-          maps.beforeMap.easeTo({ center: point, zoom: 16, pitch: 0 });
         }
 
         if (e.target.classList.contains('editLayer')) {
@@ -439,13 +443,15 @@ function LayerManager (parentElement) {
       title.textContent = 'Add Map';
       mapForm.appendChild(title);
 
-      const fields = ['title', 'borough', 'style link', 'drupal node id', 'ease to point'];
+      const fields = ['title', 'borough', 'style link', 'drupal node id', 'ease to point', 'bearing', 'zoom'];
       const titleDescriptors = [
         'Title is the name of a map e.g. "Stokes Key to Castello Plan"',
         'Borogh refers to a group of maps "1660|Castello Plan"',
         'The link to the style e.g. "mapbox://styles/nittyjee/ck7piltib01881ioc5i8bel7m"',
         'The node id is the drupal node you wish to display in the modal given a click on the info button e.g. "10056"',
-        'Ease to point is a decimal coordinate pair (longitude, latitude) e.g -74.01255,40.704882'
+        'Ease to point is a decimal coordinate pair (longitude, latitude) e.g -74.01255,40.704882',
+        'Bearing in decimal degrees e.g. -51.3',
+        'Zoom level 0-22'
       ];
 
       fields.forEach((fieldName, i) => {
@@ -520,6 +526,51 @@ function LayerManager (parentElement) {
     return promise;
   };
 
+  function layerTypeCheckbox (checkboxName) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('typeBox');
+    layerForm.appendChild(wrapper);
+    const nameLabel = document.createElement('label');
+    nameLabel.htmlFor = checkboxName;
+    nameLabel.innerHTML = `Add as "${checkboxName}" layer type: `;
+    wrapper.appendChild(nameLabel);
+    const name = document.createElement('input');
+    name.setAttribute('type', 'checkbox');
+    name.classList.add('layerType');
+    name.id = checkboxName;
+    name.dataset.layerType = checkboxName;
+    wrapper.appendChild(name);
+    const br = document.createElement('br');
+    wrapper.appendChild(br);
+    const typeBoxText = document.createElement('div');
+    typeBoxText.classList.add('typeBoxText');
+    wrapper.appendChild(typeBoxText);
+
+    return typeBoxText;
+  }
+
+  function generateLabelLayerInputs (checkboxName) {
+    const typeBoxText = layerTypeCheckbox(checkboxName);
+    // anywhere an expression or function is used, the text will have to be interpolated as parsed json
+    const paintProperties = ['color', 'text-color', 'text-halo-color', 'text-halo-width', 'text-halo-blur', 'text-opacity'];
+    paintProperties.forEach((fieldName) => {
+      const nameLabel = document.createElement('label');
+      nameLabel.htmlFor = fieldName;
+      nameLabel.innerHTML = `${fieldName}: `;
+      typeBoxText.appendChild(nameLabel);
+
+      const name = document.createElement('input');
+      name.setAttribute('type', 'text');
+      name.dataset.typeStyle = fieldName.replaceAll(' ', '_');
+      name.classList.add(fieldName.replaceAll(' ', '_'));
+      typeBoxText.appendChild(name);
+      /* these options are not added dynamically to the data.object,
+      but onsubmit */
+      const br = document.createElement('br');
+      typeBoxText.appendChild(br);
+    });
+  }
+
   this.generateAddLayerForm = () => {
     const promise = new Promise((resolve, reject) => {
       function textInputGenerator (fieldName, target, description) {
@@ -580,24 +631,7 @@ function LayerManager (parentElement) {
       }
 
       function generateLayersTypeCheckbox (checkboxName) {
-        const wrapper = document.createElement('div');
-        wrapper.classList.add('typeBox');
-        layerForm.appendChild(wrapper);
-        const nameLabel = document.createElement('label');
-        nameLabel.htmlFor = checkboxName;
-        nameLabel.innerHTML = `Add as "${checkboxName}" layer type: `;
-        wrapper.appendChild(nameLabel);
-        const name = document.createElement('input');
-        name.setAttribute('type', 'checkbox');
-        name.classList.add('layerType');
-        name.id = checkboxName;
-        name.dataset.layerType = checkboxName;
-        wrapper.appendChild(name);
-        const br = document.createElement('br');
-        wrapper.appendChild(br);
-        const typeBoxText = document.createElement('div');
-        typeBoxText.classList.add('typeBoxText');
-        wrapper.appendChild(typeBoxText);
+        const typeBoxText = layerTypeCheckbox(checkboxName);
 
         const appearance = ['color', 'opacity', 'width'];
         appearance.forEach((fieldName) => {
@@ -690,6 +724,8 @@ function LayerManager (parentElement) {
         generateLayersTypeCheckbox(type);
       });
 
+      generateLabelLayerInputs('labels');
+
       // Maps are defined in the "Layer Manager" constuctor scope.
       mapNames.forEach((map) => {
         generateAddToMapCheckbox(map);
@@ -772,13 +808,24 @@ function LayerManager (parentElement) {
           if (i === 0) {
             data.type.length = 0;
           }
+
+          function typeCompile (type) {
+            const typeObj = {};
+            typeObj.type = type.dataset.layerType;
+            const values = type.parentElement.querySelector('.typeBoxText').querySelectorAll('[type="text"]');
+            for (let i = 0; i < values.length; i++) {
+              const input = values[i];
+              // checks is text is a number
+              const value = (input.value === !null || isFinite(input.value)) ? parseFloat(input.value) : input.value;
+              typeObj[input.dataset.typeStyle] = value;
+              if (i === values.length - 1) {
+                return typeObj;
+              }
+            }
+          }
+
           if (type.checked) {
-            const typeFeature = {
-              type: type.dataset.layerType,
-              color: type.parentElement.querySelector('[data-type-style="color"]').value,
-              opacity: type.parentElement.querySelector('[data-type-style="opacity"]').value,
-              width: type.parentElement.querySelector('[data-type-style="width"]').value
-            };
+            const typeFeature = typeCompile(type);
             data.type.push(typeFeature);
           }
         });
@@ -863,8 +910,6 @@ function LayerManager (parentElement) {
         const targetMapText = mapboxId.split('/')[mapboxId.split('/').length - 1];
         const targetMap = maps[targetMapText];
         const exists = targetMap.getLayer(mapboxId);
-        console.log(exists);
-        
         if (!exists) {
           console.warn(`${targetMapText} doesn't have ${mapboxId}`);
           continue;
@@ -874,6 +919,26 @@ function LayerManager (parentElement) {
     }
   };
 
+  function paintOptions (type) {
+    if (type.type === 'labels') {
+      const paint = {
+        'text-color': type['text-color'],
+        'text-halo-color': type['text-halo-color'],
+        'text-halo-width': type['text-halo-width'],
+        'text-halo-blur': type['text-halo-blur'],
+        'text-opacity': type['text-opacity']
+      };
+      return paint;
+    }
+    const defaultPaint = {
+      [`${type.type}-color`]: (type.color) ? type.color : '#AAAAAA',
+      [`${type.type}-opacity`]: (type.opacity)
+        ? ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, parseFloat(type.opacity)]
+        : ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, 0.5]
+    };
+    return defaultPaint;
+  }
+
   function tanspileAndAddLayer (targetMap, type, data) {
     const promise = new Promise((resolve, reject) => {
       const map = maps[targetMap];
@@ -882,7 +947,7 @@ function LayerManager (parentElement) {
 
       const transpilledOptions = {
         id: layerId,
-        type: '',
+        type: (type.type === 'labels') ? 'symbol' : type.type,
         metadata: { _id: '' },
         source: {
           // url is tileset ID in mapbox:
@@ -894,14 +959,15 @@ function LayerManager (parentElement) {
         },
         // called 'source name'
         'source-layer': '',
-        paint: {
-          [`${type.type}-color`]: (type.color) ? type.color : '#AAAAAA',
-          [`${type.type}-opacity`]: (type.opacity)
-            ? ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, parseFloat(type.opacity)]
-            : ['case', ['boolean', ['feature-state', 'hover'], false], 0.8, 0.5]
-        }
+        paint: paintOptions(type)
         // filter: ["all", ["<=", "DayStart", sliderConstructor.returnMinDate()], [">=", "DayEnd", sliderConstructor.returnMaxDate()]]
       };
+
+      if (type.type === 'labels') {
+        transpilledOptions.layout['text-field'] = '{name}';
+        // transpilledOptions.layout['text-offset'] = [0,1],
+        // transpilledOptions.layout['text-size'] = { stops: [ [0, 4], [22, 34] ] }
+      }
 
       if (data.hover) {
         const hoverPopUp = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 5 });
@@ -971,7 +1037,6 @@ function LayerManager (parentElement) {
       }
       // type of map graphic: line, fill, circle
       if (data.type) {
-        transpilledOptions.type = type.type;
         if (type.type === 'circle') {
           transpilledOptions.paint[`circle-radius`] = parseFloat(type.width);
         }
@@ -997,6 +1062,7 @@ function LayerManager (parentElement) {
         layersMapboxId.push([layerId]);
       }
 
+      console.log(transpilledOptions);
       map.addLayer(transpilledOptions);
       map.on('sourcedata', () => {
         resolve();
@@ -1080,8 +1146,6 @@ document.querySelector('body').addEventListener('click', (e) => {
       controlsDiv.classList.add('hiddenControls');
       e.target.textContent = '»';
       e.target.style.left = '0px';
-      // changePosition = compare._x + 325;
-      // compare._setPosition(changePosition);
     } else {
       controlsDiv.classList.remove('hiddenControls');
       e.target.textContent = '«';
@@ -1143,8 +1207,6 @@ window.setTimeout(() => {
     });
   });
 }, 1000);
-// End point for editing data on mapbox
-// https://api.mapbox.com/datasets/v1/{username}/{dataset_id}/features/{feature_id}
 /**
  * @param {string} layerClass   -The layer being added e.g. 'infoLayerDutchGrantsPopUp'
  * @param {Object{}} event      -Event fired by Mapbox GL
@@ -1665,13 +1727,14 @@ function SliderConstructor (min, max, preSelection) {
     // if mouse is moving but not dragging slider
     if (!isDown) return;
     const x = e.pageX || e.touches[0].pageX - slider.offsetLeft;
+    const y = e.pageY || e.touches[0].pageY;
     const dist = (x - startX);
     const px = scrollLeft + dist;
-    console.log(x);
-    console.log(rulerPositionDimensions());
     // if (px > -14) {
     if (x > rulerPositionDimensions().left &&
-      x < rulerPositionDimensions().right) {
+      x < rulerPositionDimensions().right &&
+      y < rulerPositionDimensions().bottom &&
+      y > rulerPositionDimensions().top) {
       slider.style.left = `${px}px`;
       getSelection();
     }
